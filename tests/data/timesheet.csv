@@ -1,0 +1,7 @@
+date,project,is_billable,time_spent,comment
+20160401,A,1,240,
+20150326,B,,125,yeah
+20160402,B,,120,
+20160402,C,1,65
+20160413,A,1,320,booyah
+20160402,D,0,234,doh
