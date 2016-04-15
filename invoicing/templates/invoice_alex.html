@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title></title>
+  <link rel="stylesheet" href="lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+  <link rel="stylesheet" href="style_alex.css" type="text/css" />
+</head>
+<body>
+  <div class="header">
+    <h1>INVOICE</h1>
+    <img alt="Frucht graph" src="images/frucht_graph.png" />
+
+    <p class="codes">
+      <em>Code</em>: {{ invoice_code }} / 
+      <em>Issued</em>: {{ issue_date }} / 
+      <em>Due</em>: {{ due_date }}
+    </p>
+  </div>
+
+  <h2>Parties</h2>
+  <table class="table table-condensed">
+  <tr>
+    <td>From:</td>
+    <td>{{ sender }} {{ sender_address }}</td>
+    <td>To:</td>
+    <td>{{ recipient }} {{ recipient_address }}</td>
+  </tr>
+  </table>
+
+  <h2>Service</h2>
+  <table class="table table-condensed">
+    <tr>
+      <th>Project</th>
+      <th>Time (h)</th>
+      <th>Rate (NZD/h)</th>
+      <th>Total (NZD)</th>
+    </tr>
+    <tr>
+      <td>Bingo</td>
+      <td>2</td>
+      <td>150</td>
+      <td>300</td>
+    </tr>
+  </table>
+
+  <h2>Payment</h2>
+  <p>Please direct deposit the total into my bank account below by the due date above.
+  Overdue balances will be charged an additional 1% per day.</p>
+    {{ sender }}, 
+    {{ sender_bank_name }}, 
+    {{ sender_bank_account }}, 
+    reference {{ invoice_code }}
+
+  <h2>Thank You!</h2>
+  <p>If you have any questions, feel free to email me at <a class="reference external" href="mailto:{{ sender_email }}">{{ sender_email }}</a>.</p>
+
+</body>
