@@ -3,9 +3,6 @@ Main module.
 
 A *timesheet* is a Pandas data frame with at least the columns...
 
-TODO:
-
-    - Change to ``bill_linear`` and ``bill_piecewise_linear``
 """
 from collections import OrderedDict
 
@@ -127,6 +124,23 @@ def bill_at_tiered_rates(timesheet, tiered_rates_df, freq='W',
     g['cost'] = g['time_spent']*g['rate']
 
     return g
+
+# TODO: combine previous billing functions into this one
+def bill_piecewise_linearly(timesheet, rates_df, base_fees_df=None,
+  freq=None, groupby_project=False, date1=None, date2=None):
+    """
+    ``rates_df`` has the columns:
+
+    - ``'project'``
+    - ``'time_cutoff'``: use ``np.inf`` for infinite/no cutoff
+    - ``'rate'``
+
+    ``base_fees_df`` has the columns:
+
+    - ``'project'``
+    - ``'base_fee'``
+    """
+    pass
 
 # Aggregating
 def agg_by_project(timesheet):
