@@ -9,7 +9,6 @@
 <body>
   <div class="header">
     <h1>INVOICE</h1>
-    <img alt="Frucht graph" src="images/frucht_graph.png" />
 
     <p class="codes">
       <em>Code</em>: {{ invoice_code }} / 
@@ -22,9 +21,9 @@
   <table class="table table-condensed">
   <tr>
     <td>From:</td>
-    <td>{{ sender }} {{ sender_address }}</td>
+    <td>{{ sender }} <br/>{{ sender_address }}</td>
     <td>To:</td>
-    <td>{{ recipient }} {{ recipient_address }}</td>
+    <td>{{ receiver }} <br/> {{ receiver_address }}</td>
   </tr>
   </table>
 

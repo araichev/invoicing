@@ -3,6 +3,9 @@ Main module.
 
 A *timesheet* is a Pandas data frame with at least the columns...
 
+TODO:
+
+- Expand :func:`compute_cost` to allow for different billers for different projects
 """
 from collections import OrderedDict
 
@@ -50,6 +53,7 @@ def slice_by_dates(timesheet, date1=None, date2=None):
     return timesheet.copy().set_index('date')[d1:d2].reset_index()
     
 # Billing
+# TODO: Subsume this function under compute_cost()
 def bill_at_project_rates(timesheet, project_rates_df,
   date1=None, date2=None):
     """
@@ -74,26 +78,54 @@ def bill_at_project_rates(timesheet, project_rates_df,
     g['cost'] = g['time_spent']*g['rate']
     return g
 
-def partition_by_tiered_rates(t, tiered_rates_df):
-    f = tiered_rates_df.copy()
-    prev_c = 0
-    time_spent = []
-    for c in f['time_cutoff'].values:
-        delta = c - prev_c
-        if t >= delta:
-            time_spent.append(delta)
-            t -= delta
-        elif t > 0:
-            time_spent.append(t)
-            t = 0
-        else:
-            time_spent.append(0)
-        prev_c = c
-    f['time_spent'] = time_spent
-    return f
+def partition(x, cuts):
+    """
+    EXAMPLES::
 
-def bill_at_tiered_rates(timesheet, tiered_rates_df, freq='W', 
-  groupby_project=False, date1=None, date2=None):
+        >>> partition(17, [10, 15, np.inf])
+        [10, 7, 0]
+        >>> partition(27, [10, 15, np.inf])
+        [10, 15, 2]
+
+    """
+    parts = []
+    prev_cut = 0
+    for cut in cuts:
+        if x >= cut:
+            parts.append(cut)
+            x -= cut
+        elif x > 0:
+            parts.append(x)
+            x = 0
+        else:
+            parts.append(0)
+    return parts 
+
+def build_piecewise_linear_biller(base_fee, cuts, rates):
+    """
+    Use ``cuts = [np.inf]`` for a single-rate biller.
+    """
+    def biller(x):
+        return base_fee + np.dot(partition(x, cuts), rates)
+    
+    biller.kind = 'piecewise_linear'
+    biller.base_fee = base_fee
+    biller.cuts = cuts
+    return biller
+
+def compute_cost(timesheet, biller, freq='W', cuts=(), groupby_project=False, 
+  date1=None, date2=None):  
+    """
+    Slice the given timesheet to the given dates,
+    and return a new data frame with the columns
+
+    - ``'project'``
+    - ``'time_spent'``
+    - ``'rate'``: currency per hour
+    - ``'cost'``: time spent multiplied by rate
+
+    To be continued...
+    """  
     # Slice
     timesheet = slice_by_dates(timesheet, date1, date2)
 
@@ -103,14 +135,9 @@ def bill_at_tiered_rates(timesheet, tiered_rates_df, freq='W',
           lambda x: x.set_index('date')[['time_spent']].resample('W').sum())
     else:
         f = timesheet.set_index('date')[['time_spent']].resample('W').sum()
-    
-    # Partition each group by tiered rates
-    def my_agg(group):
-        t = group['time_spent'].iat[0]
-        return partition_by_tiered_rates(t, tiered_rates_df)
 
     f = f.reset_index().rename(columns={'date': 'period_end'})
-    
+
     if groupby_project:
         cols = ['period_end', 'project']
         drop_cols = ['level_2']
@@ -118,29 +145,24 @@ def bill_at_tiered_rates(timesheet, tiered_rates_df, freq='W',
         cols = ['period_end']
         drop_cols = ['level_1']
         
-    g = f.groupby(cols).apply(my_agg).reset_index().drop(drop_cols, axis=1)
-
-    # Compute cost
-    g['cost'] = g['time_spent']*g['rate']
-
+    # Partition time spent
+    if not cuts:
+        cuts = [np.inf]
+        
+    def my_agg(group):
+        d = OrderedDict()
+        t = group['time_spent'].iat[0]
+        d['time_spent'] = pd.Series(partition(t, cuts))
+        c1 = d['time_spent'].cumsum().map(biller)
+        c2 = c1.shift(1).fillna(0)
+        cost = c1 - c2
+        d['rate'] = cost/d['time_spent']
+        d['cost'] = cost
+        return pd.DataFrame(d)
+    
+    g = f.groupby(cols).apply(my_agg).reset_index().drop(
+      drop_cols, axis=1)
     return g
-
-# TODO: combine previous billing functions into this one
-def bill_piecewise_linearly(timesheet, rates_df, base_fees_df=None,
-  freq=None, groupby_project=False, date1=None, date2=None):
-    """
-    ``rates_df`` has the columns:
-
-    - ``'project'``
-    - ``'time_cutoff'``: use ``np.inf`` for infinite/no cutoff
-    - ``'rate'``
-
-    ``base_fees_df`` has the columns:
-
-    - ``'project'``
-    - ``'base_fee'``
-    """
-    pass
 
 # Aggregating
 def agg_by_project(timesheet):
@@ -152,10 +174,14 @@ def agg_by_project(timesheet):
 def make_invoice(timesheet, template='invoice_alex.html'):
     template = ENV.get_template(template)
     context = {
-      'sender': 'Alex',
       'invoice_code': 'bingo',
       'issue_date': '2016-04-16',
       'due_date': '2016-04-17',
+      'sender': 'Alex',
+      'sender_address': '1 Queen St, Auckland 1001',
+      'sender_email': 'a@b.com',
+      'receiver': 'Wingnut',
+      'receiver_address': '2 Victoria St, Auckland 1001',
       }
     html = template.render(context)
     return html
