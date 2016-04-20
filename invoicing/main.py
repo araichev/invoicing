@@ -3,9 +3,7 @@ Main module.
 
 A *timesheet* is a Pandas data frame with at least the columns...
 
-TODO:
-
-- Expand :func:`compute_cost` to allow for different billers for different projects
+Start simple with most common use case: one invoice, one billing function.
 """
 from collections import OrderedDict
 
@@ -13,10 +11,7 @@ import pandas as pd
 import numpy as np 
 from jinja2 import Environment, PackageLoader
 
-TIME_UNITS = ['min', 'h']
-
-# Load Jinja templates
-ENV = Environment(loader=PackageLoader('main', 'templates'))
+INPUT_TIME_UNITS = ['min', 'h']
 
 # I/O
 def parse_date(date_str):
@@ -30,70 +25,62 @@ def get_convert_to_hours(time_units):
     elif time_units == 'h':
         return lambda x: x
 
-def read_timesheet(path, time_units='h'):
+def read_timesheet(path, input_time_units='h'):
     """
     Read a timesheet located at the given path and return the corresponding
     data frame.
     """
-    if time_units not in TIME_UNITS:
-        raise ValueError('time_units must be one of', TIME_UNITS)
+    if input_time_units not in INPUT_TIME_UNITS:
+        raise ValueError('input_time_units must be one of', INPUT_TIME_UNITS)
     
     f = pd.read_csv(path, parse_dates=['date'], date_parser=parse_date)
     f = f.sort_values('date')
     # Convert to hours
-    convert_to_hours = get_convert_to_hours(time_units)
+    convert_to_hours = get_convert_to_hours(input_time_units)
     f['time_spent'] = f['time_spent'].map(convert_to_hours)
     return f
 
 def validate_timesheet(timesheet):
     pass
 
+# Basic timesheet manipulation
 def slice_by_dates(timesheet, date1=None, date2=None):
     d1, d2 = map(parse_date, [date1, date2])
     return timesheet.copy().set_index('date')[d1:d2].reset_index()
     
-# Billing
-# TODO: Subsume this function under compute_cost()
-def bill_at_project_rates(timesheet, project_rates_df,
-  date1=None, date2=None):
-    """
-    Slice the given timesheet to the given dates,
-    and return a new data frame with the columns
-
-    - ``'project'``
-    - ``'time_spent'``
-    - ``'rate'``: currency per hour
-    - ``'cost'``: time spent multiplied by rate
-
-    Get the rates per project from the data frame
-    ``project_rates_df``, which has the columns:
-
-    - ``'project'``
-    - ``'rate'``.
-    """
+def compute_project_times(timesheet, freq=None, date1=None, date2=None):
     f = slice_by_dates(timesheet, date1, date2)
-    cols = ['project', 'time_spent']
-    g = f[cols].groupby('project').agg(np.sum).reset_index()
-    g = g.merge(project_rates_df)
-    g['cost'] = g['time_spent']*g['rate']
-    return g
 
-def partition(x, cuts):
+    if freq is not None:
+        f = f.groupby('project').apply(
+          lambda x: x.set_index('date')[['time_spent']].resample(freq
+          ).sum().fillna(0)).reset_index()
+        f = f.rename(columns={'date': 'period_end'})
+        f = f[['period_end', 'project', 'time_spent']].sort_values(
+          'period_end')
+    else:
+        f = f.groupby('project').agg({'time_spent': np.sum}
+          ).reset_index()
+
+    return f
+
+# Billing
+def decompose(x, bins):
     """
     EXAMPLES::
 
-        >>> partition(17, [10, 15, np.inf])
+        >>> decompose(17, [10, 15, np.inf])
         [10, 7, 0]
-        >>> partition(27, [10, 15, np.inf])
+        >>> decompose(27, [10, 15, np.inf])
         [10, 15, 2]
 
     """
     parts = []
-    prev_cut = 0
-    for cut in cuts:
-        if x >= cut:
-            parts.append(cut)
-            x -= cut
+    prev_bin = 0
+    for bin in bins:
+        if x >= bin:
+            parts.append(bin)
+            x -= bin
         elif x > 0:
             parts.append(x)
             x = 0
@@ -101,20 +88,28 @@ def partition(x, cuts):
             parts.append(0)
     return parts 
 
-def build_piecewise_linear_biller(base_fee, cuts, rates):
+def build_linear_biller(rate, base_fee=0, freq=None, name=None):
     """
-    Use ``cuts = [np.inf]`` for a single-rate biller.
+    """
+    return build_piecewise_linear_biller(base_fee=base_fee,
+        bins=[np.inf], rates=[rate], freq=freq, name=name)
+
+def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None, 
+  name=None):
+    """
     """
     def biller(x):
-        return base_fee + np.dot(partition(x, cuts), rates)
+        return base_fee + np.dot(decompose(x, bins), rates)
     
+    biller.name = name
     biller.kind = 'piecewise_linear'
     biller.base_fee = base_fee
-    biller.cuts = cuts
+    biller.bins = bins
+    biller.rates = rates
+    biller.freq = freq
     return biller
 
-def compute_cost(timesheet, biller, freq='W', cuts=(), groupby_project=False, 
-  date1=None, date2=None):  
+def compute_cost(timesheet, biller, date1=None, date2=None):  
     """
     Slice the given timesheet to the given dates,
     and return a new data frame with the columns
@@ -123,36 +118,33 @@ def compute_cost(timesheet, biller, freq='W', cuts=(), groupby_project=False,
     - ``'time_spent'``
     - ``'rate'``: currency per hour
     - ``'cost'``: time spent multiplied by rate
-
-    To be continued...
     """  
     # Slice
-    timesheet = slice_by_dates(timesheet, date1, date2)
+    f = slice_by_dates(timesheet, date1, date2)
 
     # Resample to frequency by summing
-    if groupby_project:
-        f = timesheet.groupby('project').apply(
-          lambda x: x.set_index('date')[['time_spent']].resample('W').sum())
-    else:
-        f = timesheet.set_index('date')[['time_spent']].resample('W').sum()
+    # if bill_by_project:
+    #     f = timesheet.groupby('project').apply(
+    #       lambda x: x.set_index('date')[['time_spent']].resample('W').sum())
+    # else:
+    #     f = timesheet.set_index('date')[['time_spent']].resample('W').sum()
 
-    f = f.reset_index().rename(columns={'date': 'period_end'})
+    if biller.freq is not None:
+        freq = biller.freq
+        f = timesheet.set_index('date')[['time_spent']].resample(freq).sum()
+        f = f.reset_index()
 
-    if groupby_project:
-        cols = ['period_end', 'project']
-        drop_cols = ['level_2']
+    f = f.rename(columns={'date': 'period_end'})
+
+    if biller.base_fee:
+        new_bins = [0] + biller.bins
     else:
-        cols = ['period_end']
-        drop_cols = ['level_1']
-        
-    # Partition time spent
-    if not cuts:
-        cuts = [np.inf]
-        
+        new_bins = biller.bins
+
     def my_agg(group):
         d = OrderedDict()
         t = group['time_spent'].iat[0]
-        d['time_spent'] = pd.Series(partition(t, cuts))
+        d['time_spent'] = pd.Series(decompose(t, new_bins))
         c1 = d['time_spent'].cumsum().map(biller)
         c2 = c1.shift(1).fillna(0)
         cost = c1 - c2
@@ -160,17 +152,15 @@ def compute_cost(timesheet, biller, freq='W', cuts=(), groupby_project=False,
         d['cost'] = cost
         return pd.DataFrame(d)
     
-    g = f.groupby(cols).apply(my_agg).reset_index().drop(
-      drop_cols, axis=1)
+    g = f.groupby('period_end').apply(my_agg
+      ).reset_index().drop(['level_1'], axis=1)
     return g
 
-# Aggregating
-def agg_by_project(timesheet):
-    f = timesheet.copy()
-    cols = ['date', 'project', 'time_spent', 'cost']
-    return f[cols].groupby('project').agg(np.sum)
-
 # Reporting
+
+# Load Jinja templates
+ENV = Environment(loader=PackageLoader('main', 'templates'))
+
 def make_invoice(timesheet, template='invoice_alex.html'):
     template = ENV.get_template(template)
     context = {
