@@ -1,7 +1,17 @@
 """
 Main module.
 
-A *timesheet* is a Pandas data frame with at least the columns...
+Coventions
+------------
+A **timesheet** is a Pandas data frame with at least the columns
+
+- ``'date'``: date worked was done; Pandas Date object
+- ``'project'``: project the work is part of
+- ``'time_spent'``: time spent on work; hours
+
+A **biller** is...
+
+All dates are YYYYMMDD strings unless specified otherwise.
 
 Start simple with most common use case: one invoice, one billing function.
 """
@@ -11,32 +21,39 @@ import pandas as pd
 import numpy as np 
 from jinja2 import Environment, PackageLoader
 
-INPUT_TIME_UNITS = ['min', 'h']
+
+DATE_FORMAT = '%Y%m%d'
+VALID_TIME_UNITS = ['min', 'h']
 
 # I/O
-def parse_date(date_str):
+def parse_date(date_str, date_format=DATE_FORMAT):
     if date_str is None:
         return None
     return pd.datetime.strptime(date_str, '%Y%m%d')
 
-def get_convert_to_hours(time_units):
+def build_convert_to_hours(time_units):
     if time_units == 'min':
         return lambda x: x/60
     elif time_units == 'h':
         return lambda x: x
 
-def read_timesheet(path, input_time_units='h'):
+def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     """
-    Read a timesheet located at the given path and return the corresponding
-    data frame.
+    Read a timesheet CSV located at the given path and return the corresponding
+    timesheet data frame.
+    ``date_format`` is the date string format contained in the CSV.
+    ``input_time_units`` is a string representing the units of time recorded
+    in the CSV, e.g. ``'min'`` for minutes.
+    Acceptable input time units are listed in ``VALID_TIME_UNITS``. 
     """
-    if input_time_units not in INPUT_TIME_UNITS:
-        raise ValueError('input_time_units must be one of', INPUT_TIME_UNITS)
+    if input_time_units not in VALID_TIME_UNITS:
+        raise ValueError('input_time_units must be one of', VALID_TIME_UNITS)
     
-    f = pd.read_csv(path, parse_dates=['date'], date_parser=parse_date)
+    f = pd.read_csv(path, parse_dates=['date'], 
+      date_parser=lambda x: parse_date(x, DATE_FORMAT))
     f = f.sort_values('date')
     # Convert to hours
-    convert_to_hours = get_convert_to_hours(input_time_units)
+    convert_to_hours = build_convert_to_hours(input_time_units)
     f['time_spent'] = f['time_spent'].map(convert_to_hours)
     return f
 
@@ -45,24 +62,46 @@ def validate_timesheet(timesheet):
 
 # Basic timesheet manipulation
 def slice_by_dates(timesheet, date1=None, date2=None):
+    """
+    Return the portion of the timesheet for which the date satisfies
+    date1 <= date <= date2.
+    """
     d1, d2 = map(parse_date, [date1, date2])
     return timesheet.copy().set_index('date')[d1:d2].reset_index()
     
-def compute_project_times(timesheet, freq=None, date1=None, date2=None):
+def compute_project_times(timesheet, date1=None, date2=None, freq=None):
+    """
+    Slice the given timesheet by the given dates then aggregate total
+    time spent by project.
+    If a Pandas frequency string is given (e.g. 'W' for calendar week),
+    then resample by that frequency and then aggregate time spent by project.
+    Return a data frame with the columns:
+
+    - ``'start_date'``
+    - ``'end_date'``
+    - ``'project'``
+    - ``'time_speent'``
+    """
     f = slice_by_dates(timesheet, date1, date2)
 
     if freq is not None:
         f = f.groupby('project').apply(
           lambda x: x.set_index('date')[['time_spent']].resample(freq
           ).sum().fillna(0)).reset_index()
-        f = f.rename(columns={'date': 'period_end'})
-        f = f[['period_end', 'project', 'time_spent']].sort_values(
-          'period_end')
+        f = f[['date', 'project', 'time_spent']].sort_values(
+          'date')
+        f['period'] = f['date'].map(lambda x: pd.Period(x, freq))
+        f['start_date'] = f['period'].map(lambda x: x.start_time)
+        f['end_date'] = f['period'].map(lambda x: x.end_time)
     else:
+        start_date, end_date = f['date'].min(), f['date'].max()
         f = f.groupby('project').agg({'time_spent': np.sum}
           ).reset_index()
+        f['start_date'] = start_date
+        f['end_date'] = end_date
 
-    return f
+    return f[['start_date', 'end_date', 'project', 'time_spent']].copy()
+
 
 # Billing
 def decompose(x, bins):
@@ -109,6 +148,7 @@ def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None,
     biller.freq = freq
     return biller
 
+# TODO: Replace date column with start date and end date columns
 def compute_cost(timesheet, biller, date1=None, date2=None):  
     """
     Slice the given timesheet to the given dates,
@@ -134,7 +174,6 @@ def compute_cost(timesheet, biller, date1=None, date2=None):
         f = timesheet.set_index('date')[['time_spent']].resample(freq).sum()
         f = f.reset_index()
 
-    f = f.rename(columns={'date': 'period_end'})
 
     if biller.base_fee:
         new_bins = [0] + biller.bins
@@ -152,7 +191,7 @@ def compute_cost(timesheet, biller, date1=None, date2=None):
         d['cost'] = cost
         return pd.DataFrame(d)
     
-    g = f.groupby('period_end').apply(my_agg
+    g = f.groupby('date').apply(my_agg
       ).reset_index().drop(['level_1'], axis=1)
     return g
 
