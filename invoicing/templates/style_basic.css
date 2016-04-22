@@ -5,8 +5,6 @@ html 	{
 	}
 body {
     color: #333;
-    width: 560px;
-	margin: 0px auto 0px auto;
 	font: 12pt/1.4em Helvetica, 'Lucida Grande', 'Gill Sans', Verdana;
 }
 .header h1 {
@@ -42,21 +40,6 @@ a[href]:hover, a:active { text-decoration: underline;}
 em {
     font-weight: bold;
     font-style: normal;
-}
-.grey {
-    width: 100%;
-    background: #eee; 
-    margin: 1.4em -1.4em;
-    padding: 1em 1.4em;
-    border-radius: 5px;
-}
-.table-grey {
-    width: 108%;
-    background: #eee; 
-    margin: 1.4em -1.4em;
-    padding: 1em 1.4em;
-    border-radius: 5px;
-    line-height: 1.3em;  /* Why must i do this? */  
 }
 textarea, code, pre { 
     font: 10pt/1.4em 'Consolas', 'Menlo',  monospace!important; 
