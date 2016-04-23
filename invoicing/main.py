@@ -273,15 +273,22 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 # Load Jinja templates
 ENV = Environment(loader=PackageLoader('main', 'templates'))
 
-def make_invoice(cost_summary, template, context, currency_units='NZD'):
+def make_invoice(cost_summary, template, context, 
+  base_fee_str='base fee', currency_units='NZD'):
     """
     Given a cost summary (output of :func:`compute_cost_summary`),
     the name of an HTML invoice template, 
-    and a context dictionary to feed the template,
+    and a context dictionary to feed to the template,
     return the corresponding HTML invoice.
+    ``base_fee_str`` is a string with which to replace the
+    ``np.inf`` entries in a cost summary that arises from a 
+    biller with a base fee.
     """
-    f = cost_summary.replace({np.inf: 'fixed fee'})
-    f = f.round(2)
+    f = cost_summary.copy()
+    
+    # Beautify cost summary some
+    total_cost = f['cost'].sum()
+    f = f.replace({np.inf: base_fee_str})
     f = f.rename(columns={
       c: c.capitalize().replace('_', ' ')
       for c in f.columns})
@@ -290,8 +297,24 @@ def make_invoice(cost_summary, template, context, currency_units='NZD'):
       'Rate': 'Rate ({0}/h)'.format(currency_units),
       'Cost': 'Cost ({0})'.format(currency_units),
       })
-    context['cost_table'] = f.to_html(index=False,
-      classes=['table table-condensed']).replace('border="1"','border="0"')
+
+    # Convert to HTML table
+    table = f.to_html(index=False,
+      classes=['cost-table table table-condensed'],
+      float_format=lambda x: '{:.2f}'.format(x)
+      ).replace('border="1"','border="0"')
+    
+    # Add final row for total cost
+    table = table.replace('</tbody>', """
+      <tr>
+      <td colspan=4></td>
+      <td class="cost-total">{:.2f}</td>
+      </tr>
+      </tbody>
+      """.format(total_cost))
+    context['cost_table'] = table
+
+    # Render HTML
     template = ENV.get_template(template)
     html = template.render(context)
     return html
