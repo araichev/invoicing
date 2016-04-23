@@ -1,0 +1,35 @@
+html 	{
+    /*Chrome hack to print background colors: */
+    -webkit-print-color-adjust:exact;   
+	}
+body {
+    margin: 1em auto;
+    max-width: 650px;
+    color: #333;
+    font-size: 12pt;
+}
+.header h1 {
+    font-weight: normal;
+    font-size: 50px; 
+    }
+.codes {
+    margin: -0.5em 0em 2em 0em;
+}
+h2, h3 {
+	font-weight: 600;  
+    }
+em {
+    font-weight: bold;
+    font-style: normal;
+}
+.row-no-padding > [class*="col-"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+.cost-table td, .cost-table th {
+    text-align: right;
+}
+.cost-total {
+    font-weight: 600;
+    background-color: #d9edf7;
+}
