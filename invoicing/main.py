@@ -15,11 +15,15 @@ A **biller** is a univariate function that maps time spent (hours) to cost
 All dates are YYYYMMDD strings unless specified otherwise.
 
 Start simple with most common use case: one invoice, one billing function.
+
+TODO:
+
+- Make a CLI
 """
 from collections import OrderedDict
 
 import pandas as pd 
-import numpy as np 
+import numpy as np
 from jinja2 import Environment, PackageLoader
 
 
@@ -268,9 +272,7 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 
     return f
 
-# Build HTML invoices
-
-# Load Jinja templates
+# Build HTML invoices.
 ENV = Environment(loader=PackageLoader('main', 'templates'))
 
 def make_invoice(cost_summary, template, context, 

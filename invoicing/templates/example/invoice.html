@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Invoice {{ invoice_code }}</title>
+  <link rel="stylesheet" href="../lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+  <link rel="stylesheet" href="css/style.css" type="text/css" />
+</head>
+<body>
+  <div class="header">
+    <h1>INVOICE</h1>
+    <p class="codes">
+      {{ invoice_code }} &nbsp;/&nbsp; 
+      issued {{ issue_date }} &nbsp;/&nbsp;
+      due {{ due_date }}
+    </p>
+  </div>
+
+  <h2>Parties</h2>
+  <div class="container-fluid">
+    <div class="row row-no-padding">
+      <div class="col-sm-4">
+        {{ sender }}<br/> 
+        {{ sender_address }}
+      </div>
+      <div class="col-sm-2 text-center">
+        <span class="glyphicon glyphicon-arrow-right" aria-hidden="true"></span>
+      </div>
+      <div class="col-sm-4">
+        {{ receiver }}<br/> 
+        {{ receiver_address }}
+      </div>
+      <div class="col-sm-2"></div>
+    </div>
+  </div>
+  <h2>Service</h2>
+  {{ cost_table }}
+
+  <h2>Payment</h2>
+  <p>Please pay the total service cost above by the due date above by direct deposit into my bank account at
+
+    {{ sender }}, 
+    {{ sender_bank_name }}, 
+    {{ sender_bank_account }}, 
+    reference {{ invoice_code }}.
+
+  Overdue balances will be charged an additional 0.5% per day.</p>
+
+  <h2>Thank You!</h2>
+  <p>If you have any questions, feel free to email me at <a class="reference external" href="mailto:{{ sender_email }}">{{ sender_email }}</a>.</p>
+
+</body>
