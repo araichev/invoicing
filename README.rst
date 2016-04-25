@@ -1,13 +1,11 @@
 Invoicing
 **********
-A Python 3.4+ project to create simple invoices from CSV timesheets.
+A Python 3.4+ project to create invoices from CSV timesheets.
 
 
 Installation
 =============
-- Clone the repo
-- Create a Python virtual environment
-- Install the requirements via ``pip install -r requirements.txt``
+- Create a Python virtual environment and ``pip install invoicing``
 
 
 Usage
@@ -23,7 +21,8 @@ Timesheet CSVs must contain at least the columns
 
 Notes
 ======
-- Development status is Pre-alpha
+- Development status is Alpha
+- Project uses semantic version
 
 
 Authors
