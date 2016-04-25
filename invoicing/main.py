@@ -18,7 +18,7 @@ Start simple with most common use case: one invoice, one billing function.
 
 TODO:
 
-- Make a CLI
+- Make a command line interface
 """
 from collections import OrderedDict
 
@@ -210,7 +210,6 @@ def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None,
     biller.freq = freq
     return biller
 
-# TODO: Replace date column with start date and end date columns
 def compute_cost_summary(timesheet, biller, date1=None, date2=None):  
     """
     Slice the given timesheet to the given dates and compute
@@ -272,7 +271,7 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 
     return f
 
-# Build HTML invoices.
+# Reporting
 ENV = Environment(loader=PackageLoader('main', 'templates'))
 
 def make_invoice(cost_summary, template, context, 
