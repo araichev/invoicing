@@ -11,13 +11,15 @@ Installation
 Usage
 ======
 
-Timesheet CSVs must contain at least the columns
+- Timesheet CSVs must contain at least the columns
 
-- ``date``: date in the form YYYYMMDD
-- ``project``: project name
-- ``time_spent``: minutes or hours (but not both) 
-  spent on the project on the date 
+    * ``date``: date in a consistent format
+    * ``project``: project name
+    * ``time_spent``: minutes or hours (but not both) 
+      spent on the project on the date 
  
+- For example usage, play with the IPython notebook ``ipynb/examples.ipynb``
+
 
 Notes
 ======
