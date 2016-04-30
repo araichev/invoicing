@@ -1,9 +1,12 @@
 from distutils.core import setup
 
-dependencies = []
+dependencies = [
+    'pandas>=0.18',
+    'Jinja2>=2.8',
+    ]
 setup(
     name='invoicing',
-    version='1.0.0',
+    version='2.0.0',
     author='Alex Raichev',
     author_email='alex@raichev.net',
     packages=['invoicing', 'tests'],

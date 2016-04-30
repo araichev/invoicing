@@ -3,17 +3,19 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <title>Invoice {{ invoice_code }}</title>
-  <link rel="stylesheet" href="../lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+  <link rel="stylesheet" href="lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
   <link rel="stylesheet" href="css/style.css" type="text/css" />
 </head>
 <body>
   <div class="header">
     <h1>INVOICE</h1>
-    <p class="codes">
-      {{ invoice_code }} &nbsp;/&nbsp; 
-      issued {{ issue_date }} &nbsp;/&nbsp;
-      due {{ due_date }}
-    </p>
+    <ul>
+      <li>{{ invoice_code }}</li>
+      <li>/</li>
+      <li>issued {{ issue_date }}</li>
+      <li>/</li>
+      <li>due {{ due_date }}</li>
+    </ul>
   </div>
 
   <h2>Parties</h2>
@@ -34,8 +36,33 @@
     </div>
   </div>
   <h2>Service</h2>
-  {{ cost_table }}
+  <table border="0" class="cost-table table table-condensed">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Start date</th>
+      <th>End date</th>
+      <th>Time spent (h)</th>
+      <th>Rate ({{ currency }}/h)</th>
+      <th>Cost ({{ currency }})</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for start, end, time, rate, cost in cost_table %}
+    <tr>
+      <td>{{ start.strftime('%Y-%m-%d') }}</td>  
+      <td>{{ end.strftime('%Y-%m-%d') }}</td>  
+      <td>{{ '{:,.2f}'.format(time) }}</td>  
+      <td>{{ '{:,.2f}'.format(rate).replace('inf', 'base fee') }}</td>  
+      <td>{{ '{:,.2f}'.format(cost) }}</td>  
+    </tr>
+  {% endfor %}
+    <tr>
+      <td colspan="4"></td> 
+      <td class="total-cost">{{ '{:,.2f}'.format(total_cost) }}</td>  
+    </tr>
 
+  </tbody>
+  </table>
   <h2>Payment</h2>
   <p>Please pay the total service cost above by the due date above by direct deposit into my bank account at
 
