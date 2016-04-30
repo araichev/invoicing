@@ -1,15 +1,13 @@
 """
-Main module.
-
 CONVENTIONS:
 
 - A timesheet object is a Pandas DataFrame object with at least the columns
 
     * ``'date'``: date worked was done; datetime object
     * ``'project'``: project the work is part of
-    * ``'time_spent'``: time spent on work; hours
+    * ``'duration'``: time spent on work; hours
 
-- A biller is a univariate function that maps time spent to cost in some currency units
+- A biller is a univariate function that maps duration to cost (in some currency units)
 - All dates described below are YYYYMMDD strings unless specified otherwise
 
 """
@@ -32,11 +30,24 @@ VALID_TIME_UNITS = [
 # Reading
 #---------------------------------------
 def parse_date(date_str, date_format=DATE_FORMAT):
+    """
+    Given a date string and a date format, 
+    parse the date string and return its 
+    resulting datetime object.
+    """
     if date_str is None:
         return None
     return pd.datetime.strptime(date_str, '%Y%m%d')
 
 def build_convert_to_hours(time_units):
+    """
+    Given a time units string (one of ``VALID_TIME_UNITS``),
+    return a function that converts from the time unit to 
+    hours.
+    """
+    if time_units not in VALID_TIME_UNITS:
+        raise ValueError('Time units must be one of', VALID_TIME_UNITS)
+    
     if time_units == 'min':
         return lambda x: x/60
     elif time_units == 'h':
@@ -51,19 +62,17 @@ def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     - ``'date'``: date string in the format specified by ``date_format``, 
       e.g '%Y%m%d'
     - ``'project'``: project name; string
-    - ``'time_spent'``: time spent on project in units specified by
+    - ``'duration'``: time spent on project in units specified by
       the string ``input_time_units`` which must lie in ``VALID_TIME_UNITS``,
       e.g. 'min' for minutes.
     """
-    if input_time_units not in VALID_TIME_UNITS:
-        raise ValueError('input_time_units must be one of', VALID_TIME_UNITS)
     
     f = pd.read_csv(path, parse_dates=['date'], 
       date_parser=lambda x: parse_date(x, DATE_FORMAT))
     f = f.sort_values('date')
     # Convert to hours
     convert_to_hours = build_convert_to_hours(input_time_units)
-    f['time_spent'] = f['time_spent'].map(convert_to_hours)
+    f['duration'] = f['duration'].map(convert_to_hours)
     return f
 
 #---------------------------------------
@@ -77,12 +86,12 @@ def slice_by_dates(timesheet, date1=None, date2=None):
     d1, d2 = map(parse_date, [date1, date2])
     return timesheet.copy().set_index('date')[d1:d2].reset_index()
     
-def compute_project_summary(timesheet, date1=None, date2=None, freq=None):
+def agg_by_project(timesheet, date1=None, date2=None, freq=None):
     """
     Slice the given timesheet by the given dates then aggregate total
-    time spent by project.
+    duration by project.
     If a Pandas frequency string is given (e.g. 'W' for calendar week),
-    then resample by that frequency and then aggregate time spent by project.
+    then resample by that frequency and then aggregate duration by project.
     Return a data frame with the columns:
 
     - ``'start_date'``: start date of the time period corresponding to the
@@ -90,27 +99,27 @@ def compute_project_summary(timesheet, date1=None, date2=None, freq=None):
     - ``'end_date'``: end date of the time period corresponding to the
       given frequency, or the last date in the sliced timesheet
     - ``'project'``
-    - ``'time_spent'``: total timespent on project in period
+    - ``'duration'``: total duration on project in period
     """
     f = slice_by_dates(timesheet, date1, date2)
 
     if freq is not None:
         f = f.groupby('project').apply(
-          lambda x: x.set_index('date')[['time_spent']].resample(freq
+          lambda x: x.set_index('date')[['duration']].resample(freq
           ).sum().fillna(0)).reset_index()
-        f = f[['date', 'project', 'time_spent']].sort_values(
+        f = f[['date', 'project', 'duration']].sort_values(
           'date')
         f['period'] = f['date'].map(lambda x: pd.Period(x, freq))
         f['start_date'] = f['period'].map(lambda x: x.start_time)
         f['end_date'] = f['period'].map(lambda x: x.end_time)
     else:
         start_date, end_date = f['date'].min(), f['date'].max()
-        f = f.groupby('project').agg({'time_spent': np.sum}
+        f = f.groupby('project').agg({'duration': np.sum}
           ).reset_index()
         f['start_date'] = start_date
         f['end_date'] = end_date
 
-    return f[['start_date', 'end_date', 'project', 'time_spent']].copy()
+    return f[['start_date', 'end_date', 'project', 'duration']].copy()
 
 #---------------------------------------
 # Billing
@@ -165,6 +174,8 @@ def build_linear_biller(rate, base_fee=0, freq=None, name=None):
     and billing frequency 
     (Pandas frequency string such as 'W' for weekly billing).
     Uses :func:`build_piecewise_linear_biller`.
+    The returned function also contains some metadata as shown
+    in the examples below.
 
     EXAMPLES::
 
@@ -192,6 +203,8 @@ def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None,
     (Pandas frequency string such as 'W' for weekly billing)
     the given base fee plus the given hourly rates for the given 
     chunks of times listed in ``bins``.
+    The returned function also contains some metadata as shown
+    in the examples below.
 
     EXAMPLES::
 
@@ -222,22 +235,22 @@ def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None,
     biller.freq = freq
     return biller
 
-def compute_cost_summary(timesheet, biller, date1=None, date2=None):  
+def compute_costs(timesheet, biller, date1=None, date2=None):  
     """
     Slice the given timesheet to the given dates and compute
-    the cost of the time spent according to the given biller.
+    the cost of the total duration according to the given biller.
     Return a new data frame with the columns
 
     - ``'start_date'``: start date of the time period corresponding to the
       biller's frequency, or the first date in the sliced timesheet
     - ``'end_date'``: end date of the time period corresponding to the
       biller's frequency, or the last date in the sliced timesheet
-    - ``'time_spent'``: time spent resampled at the biller's frequency
+    - ``'duration'``: duration resampled at the biller's frequency
       via summing
-    - ``'rate'``: cost per hour
-    - ``'cost'``: time spent multiplied by rate
+    - ``'rate'``: cost per hour; ``np.inf`` in case of base fee
+    - ``'cost'``: duration multiplied by rate
 
-    If the biller has bins, then the time spent is decomposed
+    If the biller has bins, then the total duration is decomposed
     by the biller's bins.
     """  
     # Slice
@@ -246,7 +259,7 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
     # Resample and add start/end dates
     if biller.freq is not None:
         freq = biller.freq
-        f = timesheet.set_index('date')[['time_spent']].resample(freq).sum()
+        f = timesheet.set_index('date')[['duration']].resample(freq).sum()
         f = f.reset_index()
         f['period'] = f['date'].map(lambda x: pd.Period(x, freq))
         f['start_date'] = f['period'].map(lambda x: x.start_time)
@@ -266,12 +279,12 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
         d = OrderedDict()
         d['start_date'] = group['start_date'].iat[0]
         d['end_date'] = group['end_date'].iat[0]
-        t = group['time_spent'].iat[0]
-        d['time_spent'] = pd.Series(decompose(t, bins))
-        c1 = d['time_spent'].cumsum().map(biller)
+        t = group['duration'].iat[0]
+        d['duration'] = pd.Series(decompose(t, bins))
+        c1 = d['duration'].cumsum().map(biller)
         c2 = c1.shift(1).fillna(0)
         cost = c1 - c2
-        d['rate'] = cost/d['time_spent']
+        d['rate'] = cost/d['duration']
         d['cost'] = cost
         return pd.DataFrame(d)
     
@@ -286,14 +299,14 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 #---------------------------------------
 # Writing
 #---------------------------------------
-def make_invoice(cost_summary, template_path, context):
+def make_invoice(costs, template_path, context):
     """
-    Given a cost summary (output of :func:`compute_cost_summary`),
+    Given a costs data frame (output of :func:`compute_costs`),
     the path to an HTML invoice template (string on pathlib.Path object), 
     and a context dictionary to feed to the template,
     inject into the context the keys and values 
 
-    - ``'cost_table'``: a list of each non-header row (list)
+    - ``'costs_table'``: a list of each non-header row (list)
       in the cost summary
     - ``'total_cost'``: the sum of the ``'cost'`` column of the 
       cost summary.
@@ -301,10 +314,10 @@ def make_invoice(cost_summary, template_path, context):
     Then render the template with the context, and 
     return the resulting HTML (string) invoice.
     """
-    f = cost_summary.copy()
+    f = costs.copy()
 
     # Inject extra items into context
-    context['cost_table'] = [row.tolist() for __, row in f.iterrows()]
+    context['costs_table'] = [row.tolist() for __, row in f.iterrows()]
     context['total_cost'] = f['cost'].sum()
 
     # Render as HTML

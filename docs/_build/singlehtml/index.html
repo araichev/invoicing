@@ -1,0 +1,297 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Invoicing 3.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '3.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="None" href="index.html#document-index" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="invoicing-release-documentation">
+<h1>Invoicing 3.0.0 Documentation<a class="headerlink" href="#invoicing-release-documentation" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<span id="document-invoicing"></span><div class="section" id="invoicing-package">
+<h2>invoicing Package<a class="headerlink" href="#invoicing-package" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-invoicing.main">
+<span id="main-module"></span><h3>main Module<a class="headerlink" href="#module-invoicing.main" title="Permalink to this headline">¶</a></h3>
+<p>CONVENTIONS:</p>
+<ul>
+<li><p class="first">A timesheet object is a Pandas DataFrame object with at least the columns</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">'date'</span></code>: date worked was done; datetime object</li>
+<li><code class="docutils literal"><span class="pre">'project'</span></code>: project the work is part of</li>
+<li><code class="docutils literal"><span class="pre">'duration'</span></code>: time spent on work; hours</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">A biller is a univariate function that maps duration to cost (in some currency units)</p>
+</li>
+<li><p class="first">All dates described below are YYYYMMDD strings unless specified otherwise</p>
+</li>
+</ul>
+<dl class="data">
+<dt id="invoicing.main.DATE_FORMAT">
+<code class="descclassname">invoicing.main.</code><code class="descname">DATE_FORMAT</code><em class="property"> = '%Y%m%d'</em><a class="headerlink" href="#invoicing.main.DATE_FORMAT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default date format</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="invoicing.main.VALID_TIME_UNITS">
+<code class="descclassname">invoicing.main.</code><code class="descname">VALID_TIME_UNITS</code><em class="property"> = ['min', 'h']</em><a class="headerlink" href="#invoicing.main.VALID_TIME_UNITS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Acceptable time units</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.agg_by_project">
+<code class="descclassname">invoicing.main.</code><code class="descname">agg_by_project</code><span class="sig-paren">(</span><em>timesheet</em>, <em>date1=None</em>, <em>date2=None</em>, <em>freq=None</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.agg_by_project" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slice the given timesheet by the given dates then aggregate total
+duration by project.
+If a Pandas frequency string is given (e.g. &#8216;W&#8217; for calendar week),
+then resample by that frequency and then aggregate duration by project.
+Return a data frame with the columns:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">'start_date'</span></code>: start date of the time period corresponding to the
+given frequency, or the first date in the sliced timesheet</li>
+<li><code class="docutils literal"><span class="pre">'end_date'</span></code>: end date of the time period corresponding to the
+given frequency, or the last date in the sliced timesheet</li>
+<li><code class="docutils literal"><span class="pre">'project'</span></code></li>
+<li><code class="docutils literal"><span class="pre">'duration'</span></code>: total duration on project in period</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.build_convert_to_hours">
+<code class="descclassname">invoicing.main.</code><code class="descname">build_convert_to_hours</code><span class="sig-paren">(</span><em>time_units</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.build_convert_to_hours" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a time units string (one of <code class="docutils literal"><span class="pre">VALID_TIME_UNITS</span></code>),
+return a function that converts from the time unit to 
+hours.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.build_linear_biller">
+<code class="descclassname">invoicing.main.</code><code class="descname">build_linear_biller</code><span class="sig-paren">(</span><em>rate</em>, <em>base_fee=0</em>, <em>freq=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.build_linear_biller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a biller with the given hourly rate, base fee, 
+and billing frequency 
+(Pandas frequency string such as &#8216;W&#8217; for weekly billing).
+Uses <a class="reference internal" href="#invoicing.main.build_piecewise_linear_biller" title="invoicing.main.build_piecewise_linear_biller"><code class="xref py py-func docutils literal"><span class="pre">build_piecewise_linear_biller()</span></code></a>.
+The returned function also contains some metadata as shown
+in the examples below.</p>
+<p>EXAMPLES:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">build_linear_biller</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">base_fee</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
+<span class="go">171</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">__dict__</span>
+<span class="go">{&#39;base_fee&#39;: 3,</span>
+<span class="go">&#39;bins&#39;: [inf],</span>
+<span class="go">&#39;freq&#39;: &#39;M&#39;,</span>
+<span class="go">&#39;kind&#39;: &#39;linear&#39;,</span>
+<span class="go">&#39;name&#39;: None,</span>
+<span class="go">&#39;rates&#39;: [30]}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.build_piecewise_linear_biller">
+<code class="descclassname">invoicing.main.</code><code class="descname">build_piecewise_linear_biller</code><span class="sig-paren">(</span><em>bins</em>, <em>rates</em>, <em>base_fee=0</em>, <em>freq=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.build_piecewise_linear_biller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a biller that charges at the given billing frequency
+(Pandas frequency string such as &#8216;W&#8217; for weekly billing)
+the given base fee plus the given hourly rates for the given 
+chunks of times listed in <code class="docutils literal"><span class="pre">bins</span></code>.
+The returned function also contains some metadata as shown
+in the examples below.</p>
+<p>EXAMPLES:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">bins</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decompose</span><span class="p">(</span><span class="mi">27</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+<span class="go">[10, 15, 2]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rates</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">build_piecewise_linear_biller</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">rates</span><span class="p">,</span> <span class="n">base_fee</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="p">(</span><span class="mi">27</span><span class="p">)</span>
+<span class="go">47 # = 1 + 1*10 + 2*15 + 3*2  </span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span><span class="o">.</span><span class="n">__dict__</span>
+<span class="go">{&#39;base_fee&#39;: 1,</span>
+<span class="go">&#39;bins&#39;: [10, 15, inf],</span>
+<span class="go">&#39;freq&#39;: None,</span>
+<span class="go">&#39;kind&#39;: &#39;piecewise_linear&#39;,</span>
+<span class="go">&#39;name&#39;: None,</span>
+<span class="go">&#39;rates&#39;: [1, 2, 3]}</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.compute_costs">
+<code class="descclassname">invoicing.main.</code><code class="descname">compute_costs</code><span class="sig-paren">(</span><em>timesheet</em>, <em>biller</em>, <em>date1=None</em>, <em>date2=None</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.compute_costs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slice the given timesheet to the given dates and compute
+the cost of the total duration according to the given biller.
+Return a new data frame with the columns</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">'start_date'</span></code>: start date of the time period corresponding to the
+biller&#8217;s frequency, or the first date in the sliced timesheet</li>
+<li><code class="docutils literal"><span class="pre">'end_date'</span></code>: end date of the time period corresponding to the
+biller&#8217;s frequency, or the last date in the sliced timesheet</li>
+<li><code class="docutils literal"><span class="pre">'duration'</span></code>: duration resampled at the biller&#8217;s frequency
+via summing</li>
+<li><code class="docutils literal"><span class="pre">'rate'</span></code>: cost per hour; <code class="docutils literal"><span class="pre">np.inf</span></code> in case of base fee</li>
+<li><code class="docutils literal"><span class="pre">'cost'</span></code>: duration multiplied by rate</li>
+</ul>
+<p>If the biller has bins, then the total duration is decomposed
+by the biller&#8217;s bins.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.decompose">
+<code class="descclassname">invoicing.main.</code><code class="descname">decompose</code><span class="sig-paren">(</span><em>x</em>, <em>bins</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.decompose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a number x (the input <code class="docutils literal"><span class="pre">x</span></code>)
+and a list of numbers x_1, x_2, ..., x_n
+(the input list <code class="docutils literal"><span class="pre">bins</span></code>) whose sum is at least x and
+whose last element may equal the non-number <code class="docutils literal"><span class="pre">np.inf</span></code>
+(which represents positive infinity),
+find the least k &lt; n such that</p>
+<blockquote>
+<div>x = x_1 + x_2 + ... + x_k + r</div></blockquote>
+<p>where 0 &lt;= r &lt; x_{k+1}.
+Return the list [x_1, x_2, ..., x_k, r, 0, ..., 0]
+of length n.</p>
+<p>EXAMPLES:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">decompose</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
+<span class="go">[10, 7, 0]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decompose</span><span class="p">(</span><span class="mi">27</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
+<span class="go">[10, 15, 2]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decompose</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">])</span>
+<span class="go">[17]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">decompose</span><span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">])</span>
+<span class="go">[17]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.make_invoice">
+<code class="descclassname">invoicing.main.</code><code class="descname">make_invoice</code><span class="sig-paren">(</span><em>costs</em>, <em>template_path</em>, <em>context</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.make_invoice" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a costs data frame (output of <a class="reference internal" href="#invoicing.main.compute_costs" title="invoicing.main.compute_costs"><code class="xref py py-func docutils literal"><span class="pre">compute_costs()</span></code></a>),
+the path to an HTML invoice template (string on pathlib.Path object), 
+and a context dictionary to feed to the template,
+inject into the context the keys and values</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">'costs_table'</span></code>: a list of each non-header row (list)
+in the cost summary</li>
+<li><code class="docutils literal"><span class="pre">'total_cost'</span></code>: the sum of the <code class="docutils literal"><span class="pre">'cost'</span></code> column of the 
+cost summary.</li>
+</ul>
+<p>Then render the template with the context, and 
+return the resulting HTML (string) invoice.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.parse_date">
+<code class="descclassname">invoicing.main.</code><code class="descname">parse_date</code><span class="sig-paren">(</span><em>date_str</em>, <em>date_format='%Y%m%d'</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.parse_date" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a date string and a date format, 
+parse the date string and return its 
+resulting datetime object.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.read_timesheet">
+<code class="descclassname">invoicing.main.</code><code class="descname">read_timesheet</code><span class="sig-paren">(</span><em>path</em>, <em>date_format='%Y%m%d'</em>, <em>input_time_units='h'</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.read_timesheet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a timesheet CSV located at the given path (string or Path object)
+and return its corresponding timesheet data frame.
+The timesheet must contain at least the columns</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">'date'</span></code>: date string in the format specified by <code class="docutils literal"><span class="pre">date_format</span></code>, 
+e.g &#8216;%Y%m%d&#8217;</li>
+<li><code class="docutils literal"><span class="pre">'project'</span></code>: project name; string</li>
+<li><code class="docutils literal"><span class="pre">'duration'</span></code>: time spent on project in units specified by
+the string <code class="docutils literal"><span class="pre">input_time_units</span></code> which must lie in <code class="docutils literal"><span class="pre">VALID_TIME_UNITS</span></code>,
+e.g. &#8216;min&#8217; for minutes.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="invoicing.main.slice_by_dates">
+<code class="descclassname">invoicing.main.</code><code class="descname">slice_by_dates</code><span class="sig-paren">(</span><em>timesheet</em>, <em>date1=None</em>, <em>date2=None</em><span class="sig-paren">)</span><a class="headerlink" href="#invoicing.main.slice_by_dates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the portion of the timesheet for which the date satisfies
+date1 &lt;= date &lt;= date2.</p>
+</dd></dl>
+
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html#document-index">Table Of Contents</a></h3>
+  <ul>
+<li class="toctree-l1"><a class="reference internal" href="index.html#document-invoicing">invoicing Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="index.html#module-invoicing.main">main Module</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html#document-index">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Alex Raichev.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

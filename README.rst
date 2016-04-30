@@ -1,8 +1,8 @@
 Invoicing
 **********
-A simple Python 3.4+ package that turns CSV timesheets into customizable HTML invoices.
+A simple Python 3.4+ package for creating customizable HTML invoices from CSV timesheets.
+Designed for freelancing developers.
 Uses Pandas and Jinja2 to do the heavy lifting.
-
 
 Installation
 =============
@@ -12,8 +12,11 @@ Installation
 Usage
 ======
 - Play with the IPython notebook and invoice template in the ``examples`` directory to get the idea
-- Read the short ``main.py`` module for more details
-- Better docs coming soon 
+
+
+Documentation
+=============
+In ``docs`` and on RawGit `here <https://rawgit.com/araichev/invoicing/master/docs/_build/singlehtml/index.html>`_.
 
 
 Notes
@@ -25,8 +28,6 @@ Notes
 
 Todo
 =====
-- Document billers more
-- Make Sphinx docs
 - Add automated tests
 
 

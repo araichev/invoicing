@@ -1,8 +1,12 @@
+alabaster==0.7.7
 appnope==0.1.0
+Babel==2.3.4
 backports-abc==0.4
 decorator==4.0.9
+docutils==0.12
 entrypoints==0.2
 gnureadline==6.3.3
+imagesize==0.7.1
 ipykernel==4.3.1
 ipython==4.1.2
 ipython-genutils==0.1.0
@@ -30,6 +34,8 @@ pyzmq==15.2.0
 qtconsole==4.2.1
 simplegeneric==0.8.1
 six==1.10.0
+snowballstemmer==1.2.1
+Sphinx==1.4.1
 terminado==0.6
 tornado==4.3
 traitlets==4.2.1
