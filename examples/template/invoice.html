@@ -9,11 +9,13 @@
 <body>
   <div class="header">
     <h1>INVOICE</h1>
-    <p class="codes">
-      {{ invoice_code }} &nbsp;/&nbsp; 
-      issued {{ issue_date }} &nbsp;/&nbsp;
-      due {{ due_date }}
-    </p>
+    <ul>
+      <li>{{ invoice_code }}</li>
+      <li>/</li>
+      <li>issued {{ issue_date }}</li>
+      <li>/</li>
+      <li>due {{ due_date }}</li>
+    </ul>
   </div>
 
   <h2>Parties</h2>
@@ -47,16 +49,16 @@
   <tbody>
   {% for start, end, time, rate, cost in cost_table %}
     <tr>
-      <td>{{ start }}</td>  
-      <td>{{ end }}</td>  
-      <td>{{ time }}</td>  
-      <td>{{ rate }}</td>  
-      <td>{{ cost }}</td>  
+      <td>{{ start.strftime('%Y-%m-%d') }}</td>  
+      <td>{{ end.strftime('%Y-%m-%d') }}</td>  
+      <td>{{ '{:,.2f}'.format(time) }}</td>  
+      <td>{{ '{:,.2f}'.format(rate).replace('inf', 'base fee') }}</td>  
+      <td>{{ '{:,.2f}'.format(cost) }}</td>  
     </tr>
   {% endfor %}
     <tr>
       <td colspan="4"></td> 
-      <td class="total-cost">{{ total_cost }}</td>  
+      <td class="total-cost">{{ '{:,.2f}'.format(total_cost) }}</td>  
     </tr>
 
   </tbody>

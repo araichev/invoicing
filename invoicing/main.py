@@ -12,9 +12,6 @@ CONVENTIONS:
 - A biller is a univariate function that maps time spent to cost in some currency units
 - All dates described below are YYYYMMDD strings unless specified otherwise
 
-TODO:
-
-- Make a command line interface
 """
 from collections import OrderedDict
 from pathlib import Path 
@@ -47,8 +44,8 @@ def build_convert_to_hours(time_units):
 
 def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     """
-    Read a timesheet CSV located at the given path and return its corresponding
-    timesheet data frame.
+    Read a timesheet CSV located at the given path (string or Path object)
+    and return its corresponding timesheet data frame.
     The timesheet must contain at least the columns
 
     - ``'date'``: date string in the format specified by ``date_format``, 
@@ -68,11 +65,6 @@ def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     convert_to_hours = build_convert_to_hours(input_time_units)
     f['time_spent'] = f['time_spent'].map(convert_to_hours)
     return f
-
-def validate_timesheet(timesheet):
-    """
-    """
-    pass
 
 #---------------------------------------
 # Manipulation
@@ -179,6 +171,13 @@ def build_linear_biller(rate, base_fee=0, freq=None, name=None):
         >>> b = build_linear_biller(100, base_fee=1)
         >>> b(17)
         171
+        >>> b.__dict__
+        {'base_fee': 3,
+        'bins': [inf],
+        'freq': 'M',
+        'kind': 'linear',
+        'name': None,
+        'rates': [30]}
 
     """
     biller = build_piecewise_linear_biller(base_fee=base_fee,
@@ -205,7 +204,7 @@ def build_piecewise_linear_biller(bins, rates, base_fee=0, freq=None,
         47 # = 1 + 1*10 + 2*15 + 3*2  
         >>> b.__dict__
         {'base_fee': 1,
-         'bins': [10, 15, inf],
+        'bins': [10, 15, inf],
         'freq': None,
         'kind': 'piecewise_linear',
         'name': None,
@@ -287,28 +286,31 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 #---------------------------------------
 # Writing
 #---------------------------------------
-def make_invoice(cost_summary, template_dir, template, context, 
-  base_fee_str='base fee'):
+def make_invoice(cost_summary, template_path, context):
     """
     Given a cost summary (output of :func:`compute_cost_summary`),
-    the name of an HTML invoice template, 
+    the path to an HTML invoice template (string on pathlib.Path object), 
     and a context dictionary to feed to the template,
-    return the corresponding HTML invoice.
-    ``base_fee_str`` is a string with which to replace the
-    ``np.inf`` entries in a cost summary that arises from a 
-    biller with a base fee.
+    inject into the context the keys and values 
+
+    - ``'cost_table'``: a list of each non-header row (list)
+      in the cost summary
+    - ``'total_cost'``: the sum of the ``'cost'`` column of the 
+      cost summary.
+
+    Then render the template with the context, and 
+    return the resulting HTML (string) invoice.
     """
     f = cost_summary.copy()
-    # Inject cost summary into context
-    f = f.replace({np.inf: base_fee_str})
-    table = [row.tolist() for __, row in f.iterrows()]
-    context['cost_table'] = table
+
+    # Inject extra items into context
+    context['cost_table'] = [row.tolist() for __, row in f.iterrows()]
     context['total_cost'] = f['cost'].sum()
 
-    # Render HTML
-    template_dir = Path(template_dir).resolve().as_posix()
-    loader = j2.FileSystemLoader(template_dir)
+    # Render as HTML
+    path = Path(template_path).resolve()
+    loader = j2.FileSystemLoader(path.parent.as_posix())
     env = j2.Environment(loader=loader)
-    template = env.get_template(template)
+    template = env.get_template(path.name)
     html = template.render(context)
     return html

@@ -1,6 +1,8 @@
+appnope==0.1.0
 backports-abc==0.4
 decorator==4.0.9
 entrypoints==0.2
+gnureadline==6.3.3
 ipykernel==4.3.1
 ipython==4.1.2
 ipython-genutils==0.1.0
