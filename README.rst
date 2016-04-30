@@ -4,9 +4,10 @@ A simple Python 3.4+ package for creating customizable HTML invoices from CSV ti
 Designed for freelancing developers.
 Uses Pandas and Jinja2 to do the heavy lifting.
 
+
 Installation
 =============
-- Create a Python virtual environment and ``pip install invoicing``
+Create a Python virtual environment and ``pip install invoicing``
 
 
 Usage
