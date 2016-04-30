@@ -1,6 +1,7 @@
 Invoicing
 **********
-A Python 3.4+ project to create invoices from CSV timesheets.
+A Python 3.4+ package that consumes CSV timesheets, operates on them in combination with billing functions, and produces HTML invoices.
+At this stage of development, only the most common use case is handled, namely one billing function per invoice.
 
 
 Installation
@@ -11,14 +12,13 @@ Installation
 Usage
 ======
 
-- Timesheet CSVs must contain at least the columns
+- A timesheet CSV must contain at least the columns
 
-    * ``date``: date in a consistent format
-    * ``project``: project name
-    * ``time_spent``: minutes or hours (but not both) 
-      spent on the project on the date 
+    * ``'date'``: date in a consistent format, e.g. YYYYMMDD
+    * ``'project'``: project name
+    * ``'time_spent'``: time spent on project on date in a consistent format, e.g. minutes  
  
-- For example usage, play with the IPython notebook ``ipynb/examples.ipynb``
+- For examples, play with the IPython notebook ``ipynb/examples.ipynb``
 
 
 Notes

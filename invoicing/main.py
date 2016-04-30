@@ -1,36 +1,39 @@
 """
 Main module.
 
-Coventions
-------------
-A **timesheet** is a Pandas data frame with at least the columns
+CONVENTIONS:
 
-- ``'date'``: date worked was done; Pandas Date object
-- ``'project'``: project the work is part of
-- ``'time_spent'``: time spent on work; hours
+- A timesheet object is a Pandas DataFrame object with at least the columns
 
-A **biller** is a univariate function that maps time spent (hours) to cost 
-(your currency units). 
+    * ``'date'``: date worked was done; datetime object
+    * ``'project'``: project the work is part of
+    * ``'time_spent'``: time spent on work; hours
 
-All dates are YYYYMMDD strings unless specified otherwise.
-
-Start simple with most common use case: one invoice, one billing function.
+- A biller is a univariate function that maps time spent to cost in some currency units
+- All dates described below are YYYYMMDD strings unless specified otherwise
 
 TODO:
 
 - Make a command line interface
 """
 from collections import OrderedDict
+from pathlib import Path 
 
 import pandas as pd 
 import numpy as np
-from jinja2 import Environment, PackageLoader
+import jinja2 as j2
 
-
+#: Default date format
 DATE_FORMAT = '%Y%m%d'
-VALID_TIME_UNITS = ['min', 'h']
+#: Acceptable time units
+VALID_TIME_UNITS = [
+  'min', # minutes
+  'h', # hours
+  ]
 
-# I/O
+#---------------------------------------
+# Reading
+#---------------------------------------
 def parse_date(date_str, date_format=DATE_FORMAT):
     if date_str is None:
         return None
@@ -44,12 +47,16 @@ def build_convert_to_hours(time_units):
 
 def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     """
-    Read a timesheet CSV located at the given path and return the corresponding
+    Read a timesheet CSV located at the given path and return its corresponding
     timesheet data frame.
-    ``date_format`` is the date string format contained in the CSV.
-    ``input_time_units`` is a string representing the units of time recorded
-    in the CSV, e.g. ``'min'`` for minutes.
-    Acceptable input time units are listed in ``VALID_TIME_UNITS``. 
+    The timesheet must contain at least the columns
+
+    - ``'date'``: date string in the format specified by ``date_format``, 
+      e.g '%Y%m%d'
+    - ``'project'``: project name; string
+    - ``'time_spent'``: time spent on project in units specified by
+      the string ``input_time_units`` which must lie in ``VALID_TIME_UNITS``,
+      e.g. 'min' for minutes.
     """
     if input_time_units not in VALID_TIME_UNITS:
         raise ValueError('input_time_units must be one of', VALID_TIME_UNITS)
@@ -63,9 +70,13 @@ def read_timesheet(path, date_format=DATE_FORMAT, input_time_units='h'):
     return f
 
 def validate_timesheet(timesheet):
+    """
+    """
     pass
 
-# Basic timesheet manipulation
+#---------------------------------------
+# Manipulation
+#---------------------------------------
 def slice_by_dates(timesheet, date1=None, date2=None):
     """
     Return the portion of the timesheet for which the date satisfies
@@ -109,7 +120,9 @@ def compute_project_summary(timesheet, date1=None, date2=None, freq=None):
 
     return f[['start_date', 'end_date', 'project', 'time_spent']].copy()
 
+#---------------------------------------
 # Billing
+#---------------------------------------
 def decompose(x, bins):
     """
     Given a number x (the input ``x``)
@@ -271,11 +284,11 @@ def compute_cost_summary(timesheet, biller, date1=None, date2=None):
 
     return f
 
-# Reporting
-ENV = Environment(loader=PackageLoader('main', 'templates'))
-
-def make_invoice(cost_summary, template, context, 
-  base_fee_str='base fee', currency_units='NZD'):
+#---------------------------------------
+# Writing
+#---------------------------------------
+def make_invoice(cost_summary, template_dir, template, context, 
+  base_fee_str='base fee'):
     """
     Given a cost summary (output of :func:`compute_cost_summary`),
     the name of an HTML invoice template, 
@@ -286,36 +299,16 @@ def make_invoice(cost_summary, template, context,
     biller with a base fee.
     """
     f = cost_summary.copy()
-    
-    # Beautify cost summary some
-    total_cost = f['cost'].sum()
+    # Inject cost summary into context
     f = f.replace({np.inf: base_fee_str})
-    f = f.rename(columns={
-      c: c.capitalize().replace('_', ' ')
-      for c in f.columns})
-    f = f.rename(columns={
-      'Time spent': 'Time spent (h)',
-      'Rate': 'Rate ({0}/h)'.format(currency_units),
-      'Cost': 'Cost ({0})'.format(currency_units),
-      })
-
-    # Convert to HTML table
-    table = f.to_html(index=False,
-      classes=['cost-table table table-condensed'],
-      float_format=lambda x: '{:.2f}'.format(x)
-      ).replace('border="1"','border="0"')
-    
-    # Add final row for total cost
-    table = table.replace('</tbody>', """
-      <tr>
-      <td colspan=4></td>
-      <td class="cost-total">{:.2f}</td>
-      </tr>
-      </tbody>
-      """.format(total_cost))
+    table = [row.tolist() for __, row in f.iterrows()]
     context['cost_table'] = table
+    context['total_cost'] = f['cost'].sum()
 
     # Render HTML
-    template = ENV.get_template(template)
+    template_dir = Path(template_dir).resolve().as_posix()
+    loader = j2.FileSystemLoader(template_dir)
+    env = j2.Environment(loader=loader)
+    template = env.get_template(template)
     html = template.render(context)
     return html

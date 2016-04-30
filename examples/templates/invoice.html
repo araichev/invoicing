@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
   <title>Invoice {{ invoice_code }}</title>
-  <link rel="stylesheet" href="../lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+  <link rel="stylesheet" href="lib/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
   <link rel="stylesheet" href="css/style.css" type="text/css" />
 </head>
 <body>
@@ -34,8 +34,33 @@
     </div>
   </div>
   <h2>Service</h2>
-  {{ cost_table }}
+  <table border="0" class="cost-table table table-condensed">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Start date</th>
+      <th>End date</th>
+      <th>Time spent (h)</th>
+      <th>Rate ({{ currency }}/h)</th>
+      <th>Cost ({{ currency }})</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for start, end, time, rate, cost in cost_table %}
+    <tr>
+      <td>{{ start }}</td>  
+      <td>{{ end }}</td>  
+      <td>{{ time }}</td>  
+      <td>{{ rate }}</td>  
+      <td>{{ cost }}</td>  
+    </tr>
+  {% endfor %}
+    <tr>
+      <td colspan="4"></td> 
+      <td class="total-cost">{{ total_cost }}</td>  
+    </tr>
 
+  </tbody>
+  </table>
   <h2>Payment</h2>
   <p>Please pay the total service cost above by the due date above by direct deposit into my bank account at
 
