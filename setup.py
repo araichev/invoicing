@@ -6,7 +6,7 @@ dependencies = [
     ]
 setup(
     name='invoicing',
-    version='2.0.0',
+    version='3.0.0',
     author='Alex Raichev',
     author_email='alex@raichev.net',
     packages=['invoicing', 'tests'],
