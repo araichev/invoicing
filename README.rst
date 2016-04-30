@@ -1,6 +1,6 @@
 Invoicing
 **********
-A Python 3.4+ package that turns CSV timesheets into customizable HTML invoices.
+A simple Python 3.4+ package that turns CSV timesheets into customizable HTML invoices.
 Uses Pandas and Jinja2 to do the heavy lifting.
 
 
