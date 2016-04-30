@@ -42,7 +42,7 @@ def parse_date(date_str, date_format=DATE_FORMAT):
 def build_convert_to_hours(time_units):
     """
     Given a time units string (one of ``VALID_TIME_UNITS``),
-    return a function that converts from the time unit to 
+    return a function that converts from the time units to 
     hours.
     """
     if time_units not in VALID_TIME_UNITS:
