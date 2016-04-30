@@ -11,7 +11,7 @@ Installation
 
 Usage
 ======
-- Play with the IPython notebook and invoice template in the ``examples`` directory to get the idea
+Play with the IPython notebook and invoice template in the ``examples`` directory to get the idea
 
 
 Documentation
@@ -23,7 +23,7 @@ Notes
 ======
 - Development status is Alpha
 - Project uses semantic versioning
-- At this stage of development, only the most common use case is handled, namely one billing function per invoice. Also, only HTML invoices are generated. You can use your browser to save these to PDF, if you like. Maybe in the future i'll incorporate `wkhtmltopdf <http://wkhtmltopdf.org/>`_ to automatically convert the HTML to PDF.
+- At this stage of development, only the most common use case is handled, namely one billing function per invoice. Also, only HTML invoices are generated. You can use your browser to save these to PDF, if you like. Maybe in the future i'll incorporate wkhtmltopdf to automatically convert the HTML to PDF.
 
 
 Todo
