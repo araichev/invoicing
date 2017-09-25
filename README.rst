@@ -7,7 +7,7 @@ Uses Pandas and Jinja2 to do the heavy lifting.
 
 Installation
 =============
-Create a Python virtual environment and ``pip install invoicing``
+Create a Python virtual environment and ``pip install git+https://github.com/araichev/invoicing``
 
 
 Usage
